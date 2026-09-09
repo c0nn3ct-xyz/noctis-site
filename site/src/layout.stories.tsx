@@ -33,17 +33,18 @@ function InstallLede() {
 
 /**
  * Every page on the site is this shell with a `<main>` filled in: a skip link
- * that only shows on focus, a sticky header carrying the lockup, the four page
- * links, the repository link and the language switcher, and a footer that
- * repeats the pages, points at both source subtrees and lists the six locales
- * as plain crawlable links.
+ * that only shows on focus, a sticky header carrying the `Noctis × c0nn3ct.info`
+ * lockup, the three page links, the repository link and the language switcher,
+ * and a footer of four blocks — the lockup again with the product's own
+ * description, Product, Resources, Contacts — over the six locales as plain
+ * crawlable links.
  *
  * `current` drives `aria-current="page"` in both the header nav and the footer,
  * and it also picks which path the footer's language links pair with — so the
  * six locale links here point at this page's translations, not at six home
  * pages.
  *
- * Below `sm` the header drops its four links: the footer already carries them,
+ * Below `sm` the header drops its three links: the footer already carries them,
  * and crowding the 64px bar was the alternative. Switch the locale in the
  * toolbar to see the whole shell, text direction included, follow.
  */
@@ -51,5 +52,23 @@ export const Shell: Story = {
   args: {
     current: 'install',
     children: <InstallLede />,
+  },
+};
+
+/**
+ * `bleed` hands the page its own width: `<main>` loses the reading column so a
+ * page can lay its sections out edge to edge, and the footer widens to the band
+ * width so its rule still closes the content above it rather than stopping
+ * short of it.
+ */
+export const Bleed: Story = {
+  args: {
+    current: 'home',
+    bleed: true,
+    children: (
+      <div className="bg-surface-container-low px-5 py-16 text-center text-body-large sm:px-8 lg:px-10">
+        A band, edge to edge
+      </div>
+    ),
   },
 };

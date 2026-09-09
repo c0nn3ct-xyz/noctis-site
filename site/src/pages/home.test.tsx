@@ -144,4 +144,14 @@ describe('HomePage', () => {
       '/fa/install/',
     );
   });
+
+  it('marks every section but the hero for the entrance observer', () => {
+    const { container } = render(<HomePage />);
+    // Six sections arrive; the hero is already on screen when the page opens,
+    // so there is nothing for it to arrive from.
+    expect(container.querySelectorAll('[data-enter-section]')).toHaveLength(6);
+    expect(container.querySelector('[data-enter-section] h1')).toBeNull();
+    // The two lists arrive item by item along the line they are read on.
+    expect(container.querySelectorAll('[data-enter-stagger="wipe"]')).toHaveLength(2);
+  });
 });

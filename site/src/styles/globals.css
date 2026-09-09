@@ -472,6 +472,73 @@
   }
 }
 
+/* Band entrances — the landing page's sections arriving as they come up.
+ *
+ * Tied to where the element is, not to a clock. A fixed-duration entrance has
+ * no relationship to the scroll: at an ordinary wheel speed every element
+ * begins well below the fold and finishes above the top of the screen, so
+ * whatever the reader catches is an arbitrary phase of it that then snaps to
+ * done. That decoupling is what reads as jerky, and no easing fixes it, because
+ * the eye tracks position while the animation tracks time.
+ *
+ * A `view()` timeline makes progress a function of position instead. Scroll
+ * fast, slow, or stop, and the element is in exactly the state its place on
+ * screen calls for. The cascade down a list stops being a stack of timed delays
+ * and becomes what it looks like: each row arriving as it gets there.
+ * `src/lib/use-enter.ts` plays the same two gestures off a timer where these
+ * timelines do not exist, and tests the same two conditions, so nothing can
+ * animate twice.
+ *
+ * Transform and opacity only, both composited: everything else pays in paint. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    [data-enter],
+    [data-enter-stagger] > * {
+      animation: enter-reveal linear both;
+      animation-timeline: view();
+      /* Measured against the whole overlap rather than the element's own
+       * height, so a tall panel and a short row take a comparable run of
+       * scroll instead of the big one crawling. */
+      animation-range: cover 0% cover 22%;
+    }
+    /* A sequence arrives along the line it is read on. */
+    [data-enter='wipe'],
+    [data-enter-stagger='wipe'] > * {
+      animation-name: enter-line;
+    }
+    [dir='rtl'] [data-enter='wipe'],
+    [dir='rtl'] [data-enter-stagger='wipe'] > * {
+      animation-name: enter-line-rtl;
+    }
+  }
+}
+
+/* One-sided: the resting state is the finished one, so an element whose
+ * animation never runs is already where it belongs.
+ *
+ * Nothing slides and nothing scales. The page is a manifest, and a manifest
+ * arrives by being printed: the element is clipped and the clip opens, down the
+ * page for a block and along the reading line for a sequence. Clip and opacity
+ * only — no transform, so a row cannot arrive from somewhere it never was. */
+@keyframes enter-reveal {
+  from {
+    opacity: 0;
+    clip-path: inset(0 0 45% 0);
+  }
+}
+@keyframes enter-line {
+  from {
+    opacity: 0;
+    clip-path: inset(0 100% 0 0);
+  }
+}
+@keyframes enter-line-rtl {
+  from {
+    opacity: 0;
+    clip-path: inset(0 0 0 100%);
+  }
+}
+
 /* Reduced motion. Not a blanket kill: a spinner and a live status dot ARE the
  * feedback, so they keep going (slower, or settled on a visible frame) while
  * everything that travels stops. Colour, opacity and elevation still ease, so a

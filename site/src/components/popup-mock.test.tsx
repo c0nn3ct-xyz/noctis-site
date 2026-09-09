@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { PopupMock } from './popup-mock';
 
 const realMin = Math.min;
@@ -12,9 +12,21 @@ function tick(seconds: number, random: number) {
   });
 }
 
+/** Whether the hero is showing its speed meter at all. */
+function hasReadout(): boolean {
+  const status = screen.getByRole('heading', { level: 2 }).parentElement as HTMLElement;
+  return status.querySelectorAll('.tabular-nums > span').length > 0;
+}
+
+/** The line the ambient wave is currently drawing. */
+function wave(container: HTMLElement): string {
+  return container.querySelector('svg > path:nth-of-type(2)')?.getAttribute('d') ?? '';
+}
+
 function readout() {
-  const status = screen.getByRole('heading', { name: 'You are protected' })
-    .parentElement as HTMLElement;
+  // Found by level, not by wording: the heading is the one thing in the hero
+  // that changes when the tunnel goes down.
+  const status = screen.getByRole('heading', { level: 2 }).parentElement as HTMLElement;
   const [down, up] = Array.from(status.querySelectorAll('.tabular-nums > span'));
   return { down: down.textContent ?? '', up: up.textContent ?? '' };
 }
@@ -57,17 +69,20 @@ describe('PopupMock', () => {
 
   it('lists the pinned servers and highlights the connected one', () => {
     render(<PopupMock />);
-    const rows = screen.getAllByRole('listitem');
-    expect(rows).toHaveLength(3);
-
+    expect(screen.getAllByRole('listitem')).toHaveLength(3);
+    // The row is the control now, so the styling and the state sit on it.
+    const rows = screen.getAllByRole('button', { name: /\d+ ms$/ });
     const [amsterdam, frankfurt, singapore] = rows;
+
     expect(amsterdam).toHaveClass('bg-success-container', 'rounded-xl');
+    expect(amsterdam).toHaveAttribute('aria-pressed', 'true');
     expect(within(amsterdam).getByText('ams.example.net:443')).toBeInTheDocument();
     expect(within(amsterdam).getByText('23ms')).toBeInTheDocument();
     // Only the live row gets the larger squircle monogram.
     expect(amsterdam.querySelector('.shape-squircle-md')).not.toBeNull();
 
     expect(frankfurt).toHaveClass('rounded-lg');
+    expect(frankfurt).toHaveAttribute('aria-pressed', 'false');
     expect(frankfurt).not.toHaveClass('bg-success-container');
     expect(frankfurt.querySelector('.shape-squircle-md')).toBeNull();
     expect(within(singapore).getByText('188ms')).toBeInTheDocument();
@@ -91,8 +106,9 @@ describe('PopupMock', () => {
   it('renders the footer actions', () => {
     render(<PopupMock />);
     expect(screen.getByRole('button', { name: 'View all servers' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Add/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'More add options' })).toBeInTheDocument();
+    // One button, not a split one: `AddMenu` opens a menu from a single
+    // filled trigger, and the caret this mock used to draw was never there.
+    expect(screen.getByRole('button', { name: 'Add' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Disconnect' })).toBeInTheDocument();
   });
 
@@ -140,10 +156,123 @@ describe('PopupMock', () => {
     expect(line.split('C')).toHaveLength(44);
   });
 
+  it('holds the seeded frame under automation, without being told to', () => {
+    // What the prerender pass sees. Left to walk, the captured markup would be
+    // a frame the visitor's first render cannot reproduce.
+    Object.defineProperty(navigator, 'webdriver', { value: true, configurable: true });
+    try {
+      render(<PopupMock />);
+      const seeded = readout();
+      tick(60, 0.9);
+      expect(readout()).toEqual(seeded);
+    } finally {
+      Object.defineProperty(navigator, 'webdriver', { value: false, configurable: true });
+    }
+  });
+
+  it('holds the seeded frame for a reader who asked for less motion', () => {
+    vi.spyOn(window, 'matchMedia').mockReturnValue({ matches: true } as MediaQueryList);
+    render(<PopupMock />);
+    const seeded = readout();
+    tick(60, 0.9);
+    expect(readout()).toEqual(seeded);
+  });
+
   it('stops the ticker when it unmounts', () => {
     const clear = vi.spyOn(globalThis, 'clearInterval');
     const view = render(<PopupMock />);
     view.unmount();
     expect(clear).toHaveBeenCalled();
+  });});
+
+describe('PopupMock, operated', () => {
+  /** The row buttons, in list order. */
+  function rows() {
+    return screen.getAllByRole('button', { name: /\d+ ms$/ });
+  }
+
+  it('takes the tunnel down and brings it back', () => {
+    render(<PopupMock />);
+    const power = screen.getByRole('button', { name: 'Disconnect' });
+    expect(power).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('203.0.113.47')).toBeInTheDocument();
+
+    fireEvent.click(power);
+
+    // Everything the hero says follows from the one flag.
+    // `hero.title.ready` and `hero.sub.activeDetail`: a chosen server with the
+    // engine stopped is ready, not broken, and its line names the transport
+    // instead of the address it no longer has.
+    expect(screen.getByRole('heading', { name: 'Ready to connect' })).toBeInTheDocument();
+    expect(screen.getByText('🇳🇱 Amsterdam · tcp · reality')).toBeInTheDocument();
+    expect(screen.queryByText('203.0.113.47')).not.toBeInTheDocument();
+    const off = screen.getByRole('button', { name: 'Connect' });
+    expect(off).toHaveAttribute('aria-pressed', 'false');
+    // The chosen server keeps the choice, and loses the running colour.
+    expect(rows()[0]).toHaveAttribute('aria-pressed', 'true');
+    expect(rows()[0]).not.toHaveClass('bg-success-container');
+
+    fireEvent.click(off);
+    expect(screen.getByRole('heading', { name: 'You are protected' })).toBeInTheDocument();
+    expect(rows()[0]).toHaveClass('bg-success-container');
+  });
+
+  it('drops the readout when the tunnel goes down, and freezes the wave', () => {
+    const { container } = render(<PopupMock />);
+    expect(readout().down).not.toBe('0B/s');
+    const before = wave(container);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Disconnect' }));
+    // The real hero renders the meter only while there is a reading, so the
+    // numbers go at once rather than counting themselves down to nothing.
+    expect(hasReadout()).toBe(false);
+
+    // `PopupAmbientTraffic` buffers only seconds that moved, so the last active
+    // minute stays on screen: the wave stops rather than resetting, however
+    // long the tunnel is down.
+    tick(30, 0.9);
+    expect(wave(container)).toBe(before);
+
+    // And the next byte picks up from where it stopped.
+    fireEvent.click(screen.getByRole('button', { name: 'Connect' }));
+    expect(hasReadout()).toBe(true);
+    tick(1, 0.9);
+    expect(wave(container)).not.toBe(before);
+  });
+
+  it('switches the active server, and the hero follows it', () => {
+    render(<PopupMock />);
+    fireEvent.click(rows()[1]);
+
+    expect(screen.getByText('198.51.100.12')).toBeInTheDocument();
+    expect(screen.getByText('tls')).toBeInTheDocument();
+    // The name keeps its flag, the way the real hero prints `active.name`. The
+    // line is two elements — the name, then the handshake in bold — so it is
+    // read whole rather than matched as one text node.
+    const hero = screen.getByRole('heading', { level: 2 }).parentElement as HTMLElement;
+    expect(hero.textContent).toContain('🇩🇪 Frankfurt · via tls');
+
+    expect(rows()[1]).toHaveClass('bg-success-container');
+    expect(rows()[0]).not.toHaveClass('bg-success-container');
+    expect(rows()[0]).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('switches the routing mode', () => {
+    render(<PopupMock />);
+    const routing = within(screen.getByRole('group', { name: 'Routing' }));
+    const direct = routing.getByRole('button', { name: 'Direct' });
+
+    fireEvent.click(direct);
+    expect(direct).toHaveAttribute('aria-pressed', 'true');
+    expect(routing.getByRole('button', { name: 'Global' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+
+    // The saved profile is named by its own emoji plus its label.
+    const profile = routing.getByRole('button', { name: '✨ Sirius' });
+    fireEvent.click(profile);
+    expect(profile).toHaveAttribute('aria-pressed', 'true');
+    expect(direct).toHaveAttribute('aria-pressed', 'false');
   });
 });

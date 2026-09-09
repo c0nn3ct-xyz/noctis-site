@@ -103,7 +103,10 @@ describe('PrivacyPage', () => {
     expect(screen.getByText(t('privacy.children.body'))).toBeInTheDocument();
 
     expect(screen.getByText(t('privacy.contact.h3'))).toBeInTheDocument();
-    const mail = screen.getByRole('link', { name: 'help@c0nn3ct.info' });
+    // Scoped to the page: the footer's contacts column links the same address.
+    const mail = within(screen.getByRole('main')).getByRole('link', {
+      name: 'help@c0nn3ct.info',
+    });
     expect(mail).toHaveAttribute('href', 'mailto:help@c0nn3ct.info');
     expect(mail.parentElement).toHaveTextContent(
       `${t('privacy.contact.body_before')}help@c0nn3ct.info${t('privacy.contact.body_after')}`,

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import { Layout } from './layout';
+import { CONTACT_MAILTO, GITHUB_URL, ORG_SITE } from './constants';
 import { setLocale, t } from './i18n';
 
 afterEach(() => setLocale('en'));
@@ -23,6 +24,11 @@ describe('Layout', () => {
     expect(home.querySelector('svg')).not.toBeNull();
     expect(within(header).getByText('Noctis')).toBeInTheDocument();
 
+    // The lockup: the product, then the org that made it.
+    const org = within(header).getByRole('link', { name: 'c0nn3ct.info' });
+    expect(org).toHaveAttribute('href', ORG_SITE);
+    expect(org).toHaveAttribute('target', '_blank');
+
     // Header actions: the GitHub link and the language switcher.
     expect(within(header).getByRole('link', { name: 'GitHub' })).toBeInTheDocument();
     expect(
@@ -30,25 +36,32 @@ describe('Layout', () => {
     ).toBeInTheDocument();
 
     expect(within(screen.getByRole('main')).getByTestId('page')).toBeInTheDocument();
-    const by = within(footer()).getByRole('link', { name: 'c0nn3ct.info' });
-    expect(by).toHaveAttribute('href', 'https://c0nn3ct.info');
-    expect(by.parentElement).toHaveTextContent(`${t('footer.by')} c0nn3ct.info`);
+    // The footer echoes the lockup in place of the old "by c0nn3ct.info" byline.
+    expect(within(footer()).getByRole('link', { name: 'c0nn3ct.info' })).toHaveAttribute(
+      'href',
+      ORG_SITE,
+    );
+    expect(within(footer()).getByText(t('home.description'))).toBeInTheDocument();
   });
 
-  it('links every page and both source repos from the footer', () => {
+  it('lays the footer out as a brand block and three link columns', () => {
     render(<Layout current="install">x</Layout>);
     const links = within(footer()).getAllByRole('link');
 
     expect(links.map((a) => a.getAttribute('href'))).toEqual([
-      // The by-line: the org that made Noctis, not the product site.
-      'https://c0nn3ct.info',
+      // Brand block: the product, then the org that made it.
+      '/',
+      ORG_SITE,
+      // Product.
       '/',
       '/install/',
+      // Resources.
       '/privacy/',
       '/license/',
-      // Two labels, two destinations: they used to resolve to the same page.
-      'https://github.com/c0nn3ct-info/noctis/tree/main/site',
-      'https://github.com/c0nn3ct-info/noctis/tree/main/host',
+      // Contacts. One repository holds both halves of the product, so one link
+      // reaches the site and the helper alike.
+      GITHUB_URL,
+      CONTACT_MAILTO,
       // Every locale of *this* page, as markup a crawler can follow.
       '/install/',
       '/ru/install/',
@@ -57,15 +70,15 @@ describe('Layout', () => {
       '/fa/install/',
       '/ar/install/',
     ]);
-    expect(links.slice(1, 7).map((a) => a.textContent)).toEqual([
+    expect(links.slice(2, 8).map((a) => a.textContent)).toEqual([
       t('footer.home'),
       t('nav.install'),
       t('nav.privacy'),
       t('nav.license'),
-      t('footer.site'),
-      t('footer.helper'),
+      'GitHub',
+      'help@c0nn3ct.info',
     ]);
-    expect(links.slice(7).map((a) => a.getAttribute('hreflang'))).toEqual([
+    expect(links.slice(8).map((a) => a.getAttribute('hreflang'))).toEqual([
       'en',
       'ru',
       'es',
@@ -73,9 +86,16 @@ describe('Layout', () => {
       'fa',
       'ar',
     ]);
-    for (const external of links.slice(5, 7)) {
+    for (const external of [links[1], links[6]]) {
       expect(external).toHaveAttribute('target', '_blank');
       expect(external).toHaveAttribute('rel', 'noreferrer noopener');
+    }
+    // A mail link opens a client, not a tab.
+    expect(links[7]).not.toHaveAttribute('target');
+
+    for (const column of ['footer.product', 'footer.resources', 'footer.contacts']) {
+      expect(within(footer()).getByRole('navigation', { name: t(column) })).toBeInTheDocument();
+      expect(within(footer()).getByText(t(column))).toBeInTheDocument();
     }
   });
 
@@ -96,15 +116,16 @@ describe('Layout', () => {
     setLocale('ru');
     render(<Layout current="privacy">x</Layout>);
 
-    expect(screen.getByRole('link', { name: t('nav.home_aria') })).toHaveAttribute('href', '/ru/');
+    // Two lockups, header and footer, both pointing at the localised home.
+    for (const home of screen.getAllByRole('link', { name: t('nav.home_aria') })) {
+      expect(home).toHaveAttribute('href', '/ru/');
+    }
     expect(
       within(footer())
         .getAllByRole('link')
-        .slice(1, 5)
+        .slice(2, 6)
         .map((a) => a.getAttribute('href')),
     ).toEqual(['/ru/', '/ru/install/', '/ru/privacy/', '/ru/license/']);
-    expect(within(footer()).getByText(t('footer.pages'))).toBeInTheDocument();
-    expect(within(footer()).getByText(t('footer.sources'))).toBeInTheDocument();
     expect(
       within(footer()).getByRole('navigation', { name: t('footer.languages') }),
     ).toBeInTheDocument();
@@ -112,8 +133,30 @@ describe('Layout', () => {
     expect(
       within(footer())
         .getAllByRole('link')
-        .slice(7)
+        .slice(8)
         .map((a) => a.getAttribute('href')),
-    ).toEqual(['/privacy/', '/ru/privacy/', '/es/privacy/', '/zh-CN/privacy/', '/fa/privacy/', '/ar/privacy/']);
+    ).toEqual([
+      '/privacy/',
+      '/ru/privacy/',
+      '/es/privacy/',
+      '/zh-CN/privacy/',
+      '/fa/privacy/',
+      '/ar/privacy/',
+    ]);
+  });
+
+  it('hands the page its own width when the page bleeds', () => {
+    const { rerender } = render(<Layout current="home">x</Layout>);
+    expect(screen.getByRole('main').className).toContain('max-w-3xl');
+    expect(footer().className).toContain('max-w-3xl');
+
+    rerender(
+      <Layout current="home" bleed>
+        x
+      </Layout>,
+    );
+    expect(screen.getByRole('main').className).not.toContain('max-w-3xl');
+    // The footer still holds the band width, so its rule closes the content.
+    expect(footer().className).toContain('max-w-[1160px]');
   });
 });

@@ -436,6 +436,17 @@
     --dir-on-container: var(--on-error-container);
   }
 
+  /* The dashed control segments of the architecture diagram's rail. The dash
+   * period is 14px, which `rail-march` slides by exactly once per loop.
+   * `currentColor` so the segment picks its own weight from a text utility. */
+  .rail-dash {
+    background-image: repeating-linear-gradient(
+      90deg,
+      currentColor 0 6px,
+      transparent 6px 14px
+    );
+  }
+
   /* Animate border-radius for M3 Expressive shape morph. */
   .shape-morph {
     transition: border-radius var(--dur-med) var(--ease-spring-standard);
@@ -489,6 +500,17 @@
   /* Busy indicators still turn, slowly enough not to be a distraction. */
   .animate-spin {
     animation-duration: 1.8s !important;
+  }
+  /* The architecture diagram's rail is the one place on the site where
+   * something crosses the screen. The comet is nothing but travel, so it goes;
+   * the dashes stop marching but stay dashed, which is what carries the
+   * control-versus-traffic reading. */
+  .animate-rail-march {
+    animation: none !important;
+  }
+  .animate-rail-comet {
+    animation: none !important;
+    opacity: 0;
   }
   .shape-morph {
     transition: none !important;

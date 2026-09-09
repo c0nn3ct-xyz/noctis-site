@@ -5,17 +5,10 @@ body:
   - type: markdown
     attributes:
       value: |
-        Это про установку помощника — когда команда из диалога настройки
-        завершилась с ошибкой. / This is for the helper installer failing.
-
-        Если помощник установился, но расширение его не видит, используйте
-        «Bug report» — там диалог помощника соберёт диагностику за вас.
-
-        Установщик печатает две разные вещи: строки хода установки, каждая
-        с `->`, и в самом конце отчёт об ошибке — между
-        `--- noctis install report ---` и `--- end ---`. Нужен отчёт: только
-        в нём есть шаг, на котором всё сломалось, и текст самой ошибки.
-        Строки с `->` тоже пригодятся, для них отведено последнее поле.
+        This one is for the installer failing — the command from the setup
+        dialog stopped with an error. If the helper installed but the extension
+        cannot see it, use "Bug report" instead: the extension collects the
+        diagnostics for you there.
 
         The installer prints two different things: progress lines, each
         starting with `->`, and at the very end a failure report between
@@ -39,9 +32,6 @@ body:
     attributes:
       label: The report block, between "--- noctis install report ---" and "--- end ---"
       description: >
-        Печатается последним, когда установка уже прервалась. На Windows он
-        сразу оказывается в буфере обмена. В нём шаг, версии, которые
-        скачивались, и текст ошибки — без путей из вашей домашней папки.
         Printed last, once the install has already stopped. On Windows it is
         put on your clipboard for you. It carries the step that failed, the
         versions it was fetching and the error — no paths from your home
@@ -62,9 +52,7 @@ body:
     id: output
     attributes:
       label: Everything else the terminal showed
-      description: >
-        Строки хода установки с `->` и всё, что было до отчёта.
-        The `->` progress lines and whatever else came before the report.
+      description: The `->` progress lines and whatever else came before the report.
       render: shell
       placeholder: |
         -> release API unavailable (403); trying the release feed

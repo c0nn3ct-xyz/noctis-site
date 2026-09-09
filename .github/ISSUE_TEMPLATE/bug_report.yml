@@ -5,32 +5,16 @@ body:
   - type: markdown
     attributes:
       value: |
-        Пишите по-русски, если так удобнее — мы читаем оба языка.
-        Write in Russian if that is easier — we read both.
-
-        **Пришли из расширения?** Диагностика уже подставлена в поле
-        «Diagnostics» ниже, второй раз её вставлять не нужно. Не хватает
-        только того, чего в ней нет: что именно пошло не так. Без этого
-        видно, что делала программа, но не то, что увидели вы.
-
-        **Came from the extension?** The diagnostics below are already filled
-        in — no need to paste them a second time. The one thing they cannot
-        carry is what actually went wrong for you, and that is what the first
-        field is for.
+        **Came from the extension?** The environment card is already filled in
+        below. Two things are missing: what you saw, and the report file the
+        extension saved to your Downloads.
 
   - type: textarea
     id: what
     attributes:
       label: What happened?
-      description: >
-        Словами: что вы сделали, чего ожидали и что произошло вместо этого.
-        Блок диагностики сюда вставлять не нужно — для него поле ниже.
-        In your own words: what you did, what you expected, and what happened
-        instead. The diagnostics block goes in the field below, not here.
+      description: What you did, what you expected, and what happened instead.
       placeholder: |
-        Нажал «Подключиться» на сервере VLESS, попап остался на «Подключение…».
-        Секунд через 15 написал, что помощник не отвечает.
-
         I pressed Connect on a VLESS server and the popup stayed on "Connecting…".
         After about 15 seconds it said the helper was not responding.
     validations:
@@ -42,32 +26,40 @@ body:
       label: Protocol, if the problem is with one server
       placeholder: vless + reality, shadowsocks-2022, trojan + ws …
 
+  - type: markdown
+    attributes:
+      value: |
+        > [!WARNING]
+        > ### 📎 Attach the `noctis-report-*.json` file from your Downloads
+        > The extension saved it when it opened this form. Drag it into the
+        > field below: it carries the whole core and helper log, which the card
+        > does not. Without the file a report shows the state Noctis was in,
+        > but not what the core wrote.
+
   - type: textarea
     id: diagnostics
     attributes:
-      label: Diagnostics
+      label: Environment and where it broke
       description: >
-        Filled in for you when you open this issue from the extension —
-        the "Report a problem" button in the error toast, in the helper dialog,
-        or under Settings → Advanced → Diagnostics.
-        Если в подставленном блоке сказано, что логи опущены, замените его
-        полным отчётом из буфера обмена — здесь же, в этом поле.
-        If the block below says the logs were omitted, replace it with the full
-        report from your clipboard — here, in this field, not in the one above.
-        It carries versions, core paths and recent log lines, with server
-        addresses, keys, subscription links and visited sites already removed.
-      render: text
+        Filled in for you when you open this issue from the extension — the
+        "Report a problem" button in an error toast, in the helper dialog, or
+        under Settings → Advanced → Diagnostics. No need to retype it; attach
+        the report file in this same field. Server addresses, keys,
+        subscription links and visited sites are stripped from both the card
+        and the file.
       placeholder: |
-        --- noctis report ---
-        surface: toast
-        code: helper-timeout
-        ...
-        --- end ---
+        > [!WARNING]
+        > ### 📎 …attach the report file…
+        …
+        | Environment | |
+        | --- | --- |
+        | Extension | 1.3.0 · UI language ru |
 
   - type: checkboxes
     id: checks
     attributes:
       label: Before filing
       options:
-        - label: I re-ran the install command from the setup dialog, and it still happens
-        - label: I looked at the diagnostics block above and I am willing to post it publicly
+        - label: Attached the `noctis-report-*.json` file from my Downloads
+        - label: Re-ran the install command from the helper dialog, and it still happens
+        - label: Read the card above and I am willing to post it publicly

@@ -175,11 +175,28 @@ export default {
           '0%, 100%': { opacity: '1' },
           '50%': { opacity: '0.45' },
         },
+        // The architecture diagram's rail. Both loops move a transform and
+        // nothing else, so neither runs layout or repaints: `rail-march` slides
+        // the dashed control strip by exactly one dash period, and `rail-comet`
+        // walks a full-width carrier in from the left until the packet it holds
+        // lands flush on the next node's edge.
+        'rail-march': {
+          from: { transform: 'translateX(0)' },
+          to: { transform: 'translateX(14px)' },
+        },
+        'rail-comet': {
+          '0%': { transform: 'translateX(-100%)', opacity: '0' },
+          '8%': { opacity: '1' },
+          '85%': { opacity: '1' },
+          '100%': { transform: 'translateX(0)', opacity: '0' },
+        },
       },
       animation: {
         'pulse-ring': 'pulse-ring var(--pulse-dur, 3s) var(--ease-emph-decel) infinite',
         breathe: 'breathe 3.6s var(--ease-emph) infinite',
         'status-dot': 'status-dot 1.4s var(--ease-emph) infinite',
+        'rail-march': 'rail-march 0.6s linear infinite',
+        'rail-comet': 'rail-comet 4.2s linear infinite',
       },
     },
   },
